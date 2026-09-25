@@ -23,8 +23,8 @@ usernameSubmit.addEventListener('click', () => {
   localStorage.setItem('username', username);
 });
 
-ws.onmessage = (eve) => {
-  const data = JSON.parse(event.data);
+ws.onmessage = (e) => {
+  const data = JSON.parse(e.data);
 
   if (data.type === 'rooms') {
     roomsList.innerHTML = '';
@@ -32,12 +32,32 @@ ws.onmessage = (eve) => {
     data.rooms.forEach((room) => {
       const li = document.createElement('li');
 
-      li.textContent = room.name;
-
-      li.addEventListener('click', () => {
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = room.name;
+      nameSpan.addEventListener('click', () => {
         ws.send(JSON.stringify({ type: 'join', roomId: room.id, username }));
       });
 
+      const renameBtn = document.createElement('button');
+      renameBtn.textContent = 'Rename';
+      renameBtn.addEventListener('click', () => {
+        const newName = prompt('New room name:', room.name);
+        if (newName) {
+          ws.send(
+            JSON.stringify({ type: 'renameRoom', roomId: room.id, newName }),
+          );
+        }
+      });
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.addEventListener('click', () => {
+        ws.send(JSON.stringify({ type: 'deleteRoom', roomId: room.id }));
+      });
+
+      li.appendChild(nameSpan);
+      li.appendChild(renameBtn);
+      li.appendChild(deleteBtn);
       roomsList.appendChild(li);
     });
   }
@@ -47,30 +67,24 @@ ws.onmessage = (eve) => {
 
     data.messages.forEach((message) => {
       const p = document.createElement('p');
-
       p.textContent = `[${message.time}] ${message.author}: ${message.text}`;
-
       messagesDiv.appendChild(p);
     });
   }
 
   if (data.type === 'newMessage') {
     const p = document.createElement('p');
-
     p.textContent = `[${data.message.time}] ${data.message.author}: ${data.message.text}`;
-
     messagesDiv.appendChild(p);
   }
 };
 
 createRoomBtn.addEventListener('click', () => {
   ws.send(JSON.stringify({ type: 'createRoom', name: newRoomInput.value }));
-
   newRoomInput.value = '';
 });
 
 sendMessageBtn.addEventListener('click', () => {
   ws.send(JSON.stringify({ type: 'message', text: messageInput.value }));
-
   messageInput.value = '';
 });
